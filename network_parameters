@@ -1,0 +1,20 @@
+To check existing emulation rules:
+sudo tc -s qdisc Is dev lo
+
+
+To delete rules:
+sudo tc qdisc del root dev lo
+
+
+
+To set some rules (each test case is one line - after test dont forget to delete this rules):
+
+sudo tc qdisc add dev lo root netem rate 100mbps
+
+sudo tc qdisc add dev lo root netem rate 100mbps delay 5ms loss 1%
+
+sudo tc qdisc add dev lo root netem rate 100mbps delay 5ms loss 10%
+
+sudo tv qdisc add dev lo root netem rate 100mbps delay 50ms loss 10%
+
+sudo te qdisc add dev lo root netem rate 100mbps delay 500ms loss 1%
