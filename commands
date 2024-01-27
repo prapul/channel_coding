@@ -1,0 +1,5 @@
+Server side command: python3 server.py -a 0.0.0.0 -p 8888
+
+Client side command: python3 client.py -a <IP_ADDRESS>  -p 8888 -f <FILE_NAME_TO_SEND>
+
+```
