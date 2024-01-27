@@ -89,6 +89,9 @@ def main(cmd_args=None):
     PACKET_COUNTER = 0
     PACKET_NUMBER = len(packets)
 
+    print("Sending data and starting timer")
+    start_time = time.time()
+
     while PACKET_COUNTER < PACKET_NUMBER:
         packet_list = list()
         for i in range(PACKET_COUNTER, min(PACKET_COUNTER + WINDOW_SIZE, PACKET_NUMBER)):
@@ -99,6 +102,10 @@ def main(cmd_args=None):
     # Send the last packet
     sock.sendto(pickle.dumps([None, None, 1]), (args.address, args.port))
 
+    print("Transmission done")
+
+    end_time = time.time()
+    print(f"Transmission time: {end_time - start_time} seconds")
 
 if __name__ == "__main__":
     main(sys.argv[1:])
