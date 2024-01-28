@@ -25,13 +25,13 @@ def getOptions(cmd_args=None):
 
 
 def readFile(file):
-    with open(file, 'r') as f:
+    with open(file, 'rb') as f:
         content = f.read()
         return content
 
 
 # Split the bytes to packets
-def makePackets(content, packetSize=10):
+def makePackets(content, packetSize=500):                     # 500 bytes of data in a packet which will be sent to the server
     packets = list()
     for i in range(0, len(content), packetSize):
         packets.append(content[i:i + packetSize])
@@ -51,20 +51,22 @@ def sendPackets(window, sock, args, max_retransmission=5):
     sent_packets = dict()  # Keep track of sent packets and their Acknowledgements
 
     # Check if it is a list or dictionary
-    if isinstance(window, list):
+    if isinstance(window, list):                                            # The window is a list by default
         for i, packet in enumerate(window):
             sock.sendto(pickle.dumps([i, packet, None]), (args.address, args.port))
+            print(f"Sending packet {i} in window")
             sent_packets[i] = packet
 
-    if isinstance(window, dict):
+    if isinstance(window, dict):                                            # The window is a dictionary in the end when number of packets to send is less than window size
         for key, value in window.items():
             sock.sendto(pickle.dumps([key, value, None]), (args.address, args.port))
+            print(f"Retransmitting packet {key} in window")
             sent_packets[key] = value
 
     # Wait for Acknowledgements
     while sent_packets:
         try:
-            data, addr = sock.recvfrom(1024)
+            data, addr = sock.recvfrom(1024)                  # 1024 is the buffer size
             ack_seq_number = pickle.loads(data)[0]
 
             # Mark the corresponding packet as Acknowledged
@@ -94,7 +96,7 @@ def main(cmd_args=None):
 
     while PACKET_COUNTER < PACKET_NUMBER:
         packet_list = list()
-        for i in range(PACKET_COUNTER, min(PACKET_COUNTER + WINDOW_SIZE, PACKET_NUMBER)):
+        for i in range(PACKET_COUNTER, min(PACKET_COUNTER + WINDOW_SIZE, PACKET_NUMBER)):      # packet_counter + window_size is the upper bound except in the end when number of packets to send is less than window size
             packet_list.append(packets[i])
         sendPackets(packet_list, sock, args)
         PACKET_COUNTER += WINDOW_SIZE

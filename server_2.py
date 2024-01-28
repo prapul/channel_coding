@@ -53,7 +53,7 @@ def receiveData(sock):
         return end
     else:
         message = data[1]
-
+        print(f"Received packet {data[0]} from window")
         # Send Acknowledgement
         sock.sendto(pickle.dumps([data[0], 'ACK']), address)
 
@@ -62,7 +62,7 @@ def receiveData(sock):
         # ....
 
         # Write to file
-        with open('/home/prapul/client_server/read_file', 'a+') as f:
+        with open('/home/prapul/client_server/read_file', 'ab+') as f:
             f.write(message)
         return end
 
