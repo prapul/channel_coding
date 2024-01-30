@@ -85,6 +85,10 @@ def sendPackets(window, sock, args, max_retransmission=5):
 def main(cmd_args=None):
     args = getOptions(cmd_args)
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    # To do: Implement timeout
+    # sock.settimeout(timeout_period)
+
     content = readFile(args.file)
     packets = makePackets(content)
 
