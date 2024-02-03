@@ -3,7 +3,6 @@ import sys
 import hashlib
 
 WINDOW_SIZE = 10
-
 hasher = hashlib.md5()
 
 
@@ -38,7 +37,10 @@ def startServer(args):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((args.address, args.port))
     print("Server is listening")
-    return sock
+    data, address = sock.recvfrom(1024)
+    total_packets = pickle.loads(data)
+    print("Received total number of packets to be sent -> ", total_packets)
+    return sock, total_packets
 
 # Receiving data from the client
 def receiveData(sock):
@@ -74,7 +76,7 @@ def receiveData(sock):
 # Main function
 def main(cmd_args):
     args = getOptions(cmd_args)
-    sock = startServer(args)
+    sock, total_packets = startServer(args)
     end = False
     while end == False:
         end = receiveData(sock)

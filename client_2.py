@@ -5,7 +5,7 @@ import hashlib
 hasher = hashlib.md5()
 
 WINDOW_SIZE = 10
-timeout_period = 0.05
+timeout_period = 0.5
 
 
 def getOptions(cmd_args=None):
@@ -49,6 +49,8 @@ def fillWindow(packets, WINDOW_SIZE):
 # Sending Packets and maintaining Dictionary of sent packets
 def sendPackets(window, sock, args, max_retransmission=5):
     sent_packets = dict()  # Keep track of sent packets and their Acknowledgements
+
+    sock.settimeout(timeout_period)  # Set timeout for the socket
 
     # Check if it is a list or dictionary
     if isinstance(window, list):                                            # The window is a list by default
@@ -94,6 +96,9 @@ def main(cmd_args=None):
 
     PACKET_COUNTER = 0
     PACKET_NUMBER = len(packets)
+
+    # Send the number of packets to the server
+    sock.sendto(pickle.dumps(PACKET_NUMBER), (args.address, args.port))
 
     print("Sending data and starting timer")
     start_time = time.time()
