@@ -43,7 +43,7 @@ def startServer(args):
     return sock, total_packets
 
 # Receiving data from the client
-def receiveData(sock):
+def receiveData(sock, total_packets):
     end = False
     data, address = sock.recvfrom(1024)
     data = pickle.loads(data)
@@ -60,6 +60,7 @@ def receiveData(sock):
         sock.sendto(pickle.dumps([data[0], 'ACK']), address)
 
         # To do
+        print(total_packets)
         # Reorder packets in case of packet loss
         # ....
 
@@ -75,11 +76,12 @@ def receiveData(sock):
 
 # Main function
 def main(cmd_args):
+    signal.signal(signal.SIGINT, signal_handler)     # Handling signals Ctrl+C
     args = getOptions(cmd_args)
     sock, total_packets = startServer(args)
     end = False
     while end == False:
-        end = receiveData(sock)
+        end = receiveData(sock, total_packets)
     sock.close()
 
 if __name__ == "__main__":
