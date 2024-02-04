@@ -5,6 +5,9 @@ import hashlib
 WINDOW_SIZE = 10
 hasher = hashlib.md5()
 
+RECEIVED_COUNTER = 0
+GLOBAL_dict = dict()      # Dictionary to store the received packets (Buffer)
+TOTAL_PACKETS = 0
 
 # parser for receiving network parameters
 def getOptions(cmd_args=None):
@@ -38,37 +41,41 @@ def startServer(args):
     sock.bind((args.address, args.port))
     print("Server is listening")
     data, address = sock.recvfrom(1024)
-    total_packets = pickle.loads(data)
-    print("Received total number of packets to be sent -> ", total_packets)
-    return sock, total_packets
+    TOTAL_PACKETS = pickle.loads(data)
+    print("Received total number of packets to be sent -> ", TOTAL_PACKETS)
+    return sock
 
 # Receiving data from the client
-def receiveData(sock, total_packets):
+def receiveData(sock):
     end = False
     data, address = sock.recvfrom(1024)
     data = pickle.loads(data)
 
     endFlag = data[2]
-    if endFlag == 1:
-        end = True
-        print("Transmission done")
-        return end
-    else:
+    if endFlag == None:
         message = data[1]
         print(f"Received packet {data[0]} from window")
         # Send Acknowledgement
         sock.sendto(pickle.dumps([data[0], 'ACK']), address)
 
-        # To do
-        print(total_packets)
-        # Reorder packets in case of packet loss
-        # ....
+        global GLOBAL_dict                # Using the global dictionary to store the received packets
+        GLOBAL_dict[data[0]] = message    # Storing the received packets in the dictionary
+        global RECEIVED_COUNTER
+        RECEIVED_COUNTER += 1             # Keeping track of the number of packets received
 
-        # Write to file
-        with open('/home/prapul/client_server/read_file', 'ab+') as f:
-            f.write(message)
+        if (RECEIVED_COUNTER == TOTAL_PACKETS) or (len(GLOBAL_dict) == WINDOW_SIZE):    # If all the packets are received or the window is full
+            GLOBAL_dict = dict(sorted(GLOBAL_dict.items()))                                     # Sort the dictionary
+            with open('/home/prapul/client_server/read_file', 'ab+') as f:              # Write the received packets to a file
+                for i in GLOBAL_dict:
+                    f.write(GLOBAL_dict[i])
+            GLOBAL_dict = dict()
+            return end
         return end
 
+    else:
+        end = True
+        print("Transmission done")
+        return end
 
 
 
@@ -78,10 +85,10 @@ def receiveData(sock, total_packets):
 def main(cmd_args):
     signal.signal(signal.SIGINT, signal_handler)     # Handling signals Ctrl+C
     args = getOptions(cmd_args)
-    sock, total_packets = startServer(args)
+    sock = startServer(args)
     end = False
     while end == False:
-        end = receiveData(sock, total_packets)
+        end = receiveData(sock)
     sock.close()
 
 if __name__ == "__main__":
