@@ -1,9 +1,11 @@
 import argparse, sys, socket
+import hashlib
 import pickle
 import time
+from typing import List
 
 
-def getOptions(cmd_args=None):
+def get_options(cmd_args=None):
     parser = argparse.ArgumentParser(
         prog="Enter details to send"
     )
@@ -18,63 +20,53 @@ def getOptions(cmd_args=None):
     )
     return parser.parse_args()
 
-def readFile(file):
+
+def read_file(file, size=1472):  # Read particular number of bytes from file
     with open(file, 'rb') as f:
-        content = f.read()
-        return content
+        data_segments = list()
+        while True:
+            data = f.read(size)
+            if not data:
+                break
+            data_segments.append(data)
+        return data_segments
 
-def sendPackets(packets):
-    pass
 
-def makePackets(content, packetSize=500):                     # 500 bytes of data in a packet which will be sent to the server
-    packets = list()
-    for i in range(0, len(content), packetSize):
-        packets.append(content[i:i + packetSize])
-    return packets
+args = get_options(sys.argv[1:])
 
-args = getOptions(sys.argv[1:])
-content = readFile(args.file)
+data_segments = read_file(args.file)
+total_packets = len(data_segments)
+received_acks = list()
+
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.settimeout(5)
 maxTransmissions = 5
 retransmissionCounter = 0
 
-packets = makePackets(content)
-numberOfPackets = len(packets)
+current_packet_number = 0
 
-packetCounter = 0
-print("Start of transmission")
+while current_packet_number < total_packets or len(received_acks) < total_packets:
+    current_data = data_segments[current_packet_number]
+    checksum = hashlib.md5(current_data).hexdigest()
 
-start_time = time.time()
-while packetCounter < numberOfPackets:
+    packet_to_send = pickle.dumps([current_packet_number, total_packets, current_data, checksum])
     try:
-        sock.sendto(pickle.dumps([packetCounter, packets[packetCounter], 0]), (args.address, args.port))
-        data, addr = sock.recvfrom(1024)
+        sock.sendto(packet_to_send, (args.address, args.port))
+        print(f"Packet {current_packet_number} sent. Waiting for Ack")
+        ack, _ = sock.recvfrom(1024)
+        if "BIT ERROR" not in ack[1]:
+            print("Data packet received by Server without errors")
+            current_packet_number += 1
 
-        if pickle.loads(data)[0] == packetCounter:
-            print(f"Packet {packetCounter} has been received by server")
-            packetCounter += 1
-            retransmissionCounter = 0
     except socket.timeout:
         if retransmissionCounter == maxTransmissions:
-            print(f"Packet {packetCounter} has not been received by server")
+            print(f"Packet {current_packet_number} has not been received by server")
             print("Max retransmissions reached")
             break
         else:
-            print(f"Packet {packetCounter} has not been received by server. Retransmission {retransmissionCounter + 1} of {maxTransmissions}")
-            sock.sendto(packets[packetCounter], (args.address, args.port))
+            print(
+                f"Packet {current_packet_number} has not been received by server. Retransmission {retransmissionCounter + 1} of {maxTransmissions}")
+            sock.sendto(packet_to_send, (args.address, args.port))
             retransmissionCounter += 1
 
-# Send end of transmission flag
-sock.sendto(pickle.dumps([None, None, 1]), (args.address, args.port))
-print("End of transmission")
-end_time = time.time()
-print(f"Time taken for transmisssion is {end_time-start_time}")
-sock.close()
-
-
-
-
-
-
-
+print("Transmission complete")
