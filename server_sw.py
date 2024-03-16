@@ -2,6 +2,7 @@ import argparse, sys, socket
 import os
 import pickle
 import hashlib
+import time
 
 
 def get_options(cmd_args=None):
@@ -32,9 +33,9 @@ def add_unique(number, data):
     if len(received_data)
         received_data[number] = data
 
-
+start_time = time.time()
 while True:
-    data, address = sock.recvfrom(1024)
+    data, address = sock.recvfrom(1472)
     data = pickle.loads(data)  # [current_packet_number,total_packets,current_data,checksum]
 
     received_packet_number = data[0]
@@ -57,8 +58,9 @@ while True:
 
     if expected_packet_number == total_packets:
         break
-
+end_time = time.time()
 print("Server has received all the packets")
+print(f"Time taken is {end_time - start_time} s")
 sock.close()
 
 with open(file_path, 'ab') as f:
